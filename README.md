@@ -42,7 +42,7 @@ flask-apm-demo/
 
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/flask-apm-demo.git
+   git clone https://github.com/itsbanjo/flask-apm-demo.git
    cd flask-apm-demo
    ```
 
