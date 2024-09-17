@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Placement</title>
+    <style>
+        .high-latency {
+            background-color: #ffcccc;
+        }
+        #log {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 200px;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+    <h1>Place an Order</h1>
+    <form id="orderForm">
+        <label for="user_id">User ID:</label>
+        <input type="text" id="user_id" name="user_id" required><br><br>
+        
+        <label for="product_id">Product ID:</label>
+        <input type="text" id="product_id" name="product_id" required><br><br>
+        
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity" name="quantity" required><br><br>
+        
+        <label for="region">Region:</label>
+        <select id="region" name="region">
+            <option value="North America">North America</option>
+            <option value="South America">South America</option>
+            <option value="Europe">Europe</option>
+            <option value="Asia">Asia</option>
+        </select><br><br>
+        
+        <label for="device_type">Device Type:</label>
+        <select id="device_type" name="device_type">
+            <option value="Desktop">Desktop</option>
+            <option value="Mobile">Mobile</option>
+            <option value="Tablet">Tablet</option>
+        </select><br><br>
+        
+        <input type="submit" value="Place Order">
+    </form>
+    
+    <button id="highLatencyBtn">Activate High Latency (30s)</button>
+    
+    <div id="result"></div>
+    <div id="log"></div>
+
+    <script>
+        let highLatencyActive = false;
+        const highLatencyBtn = document.getElementById('highLatencyBtn');
+        const orderForm = document.getElementById('orderForm');
+        const resultDiv = document.getElementById('result');
+        const logDiv = document.getElementById('log');
+
+        function log(message) {
+            const timestamp = new Date().toISOString();
+            logDiv.innerHTML += `<p>${timestamp}: ${message}</p>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        highLatencyBtn.addEventListener('click', function() {
+            if (!highLatencyActive) {
+                highLatencyActive = true;
+                this.classList.add('high-latency');
+                this.textContent = 'High Latency Active';
+                log('High latency activated');
+                
+                setTimeout(() => {
+                    highLatencyActive = false;
+                    this.classList.remove('high-latency');
+                    this.textContent = 'Activate High Latency (30s)';
+                    log('High latency deactivated');
+                }, 30000);
+            }
+        });
+
+        orderForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            formData.append('high_latency', highLatencyActive);
+            
+            // Add custom headers for additional metadata
+            const headers = new Headers();
+            headers.append('X-User-Region', formData.get('region'));
+            headers.append('X-Device-Type', formData.get('device_type'));
+            headers.append('X-High-Latency', highLatencyActive.toString());
+            headers.append('X-User-ID', formData.get('user_id'));
+            headers.append('X-Product-ID', formData.get('product_id'));
+            
+            log(`Sending order request (High Latency: ${highLatencyActive})`);
+            
+            fetch('/order', {
+                method: 'POST',
+                body: formData,
+                headers: headers
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultDiv.innerHTML = JSON.stringify(data);
+                log(`Received response: ${JSON.stringify(data)}`);
+            })
+            .catch(error => {
+                resultDiv.innerHTML = 'Error: ' + error;
+                log(`Error: ${error}`);
+            });
+        });
+    </script>
+</body>
+</html>
