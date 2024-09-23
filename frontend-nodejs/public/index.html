@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Processing System (Node.js)</title>
+</head>
+<body>
+    <h1>Welcome to the Order Processing System (Node.js Frontend)</h1>
+    <form id="orderForm">
+        <label for="user_id">User ID:</label>
+        <input type="text" id="user_id" name="user_id" required><br><br>
+        
+        <label for="product_id">Product ID:</label>
+        <input type="text" id="product_id" name="product_id"><br><br>
+        
+        <label for="product_name">Product Name:</label>
+        <input type="text" id="product_name" name="product_name"><br><br>
+        
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity" name="quantity" required><br><br>
+        
+        <label for="price">Price:</label>
+        <input type="number" id="price" name="price" step="0.01"><br><br>
+        
+        <label for="region">Region:</label>
+        <select id="region" name="region">
+            <option value="North America">North America</option>
+            <option value="South America">South America</option>
+            <option value="Europe">Europe</option>
+            <option value="Asia">Asia</option>
+        </select><br><br>
+        
+        <label for="device_type">Device Type:</label>
+        <select id="device_type" name="device_type">
+            <option value="Desktop">Desktop</option>
+            <option value="Mobile">Mobile</option>
+            <option value="Tablet">Tablet</option>
+        </select><br><br>
+        
+        <input type="submit" value="Place Order">
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const orderData = Object.fromEntries(formData);
+
+            try {
+                const response = await fetch('/order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData),
+                });
+                const result = await response.json();
+                document.getElementById('result').innerText = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('result').innerText = 'Error processing order';
+            }
+        });
+    </script>
+</body>
+</html>

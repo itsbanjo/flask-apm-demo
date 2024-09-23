@@ -1,0 +1,14 @@
+{
+  "name": "frontend-nodejs",
+  "version": "1.0.0",
+  "description": "Node.js frontend for the multi-service application",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "axios": "^0.21.1",
+    "elastic-apm-node": "^3.45.0"
+  }
+}

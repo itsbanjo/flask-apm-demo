@@ -30,12 +30,27 @@ def log_with_timestamp(message):
 def process_order():
     log_with_timestamp("Received order processing request")
     
-    user_id = request.form.get('user_id')
-    product_id = request.form.get('product_id')
-    quantity = request.form.get('quantity')
-    high_latency = request.form.get('high_latency') == 'true'
+    data = request.json
+    if not data:
+        return jsonify({'message': 'No JSON data received'}), 400
+
+    user_id = data.get('user_id')
+    product_id = data.get('product_id')
+    product_name = data.get('product_name')  # New field for product name
+    quantity = data.get('quantity')
+    price = data.get('price')  # New field for product price
     
-    # Capture custom headers
+    if not all([user_id, quantity]) or (not product_id and not product_name):
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    try:
+        quantity = int(quantity)
+        if price:
+            price = float(price)
+    except ValueError:
+        return jsonify({'message': 'Invalid quantity or price'}), 400
+
+    high_latency = request.headers.get('X-High-Latency', 'false').lower() == 'true'
     user_region = request.headers.get('X-User-Region', 'Unknown')
     device_type = request.headers.get('X-Device-Type', 'Unknown')
     
@@ -43,7 +58,9 @@ def process_order():
     elasticapm.set_custom_context({
         'user_id': user_id,
         'product_id': product_id,
+        'product_name': product_name,
         'quantity': quantity,
+        'price': price,
         'high_latency': high_latency,
         'user_region': user_region,
         'device_type': device_type
@@ -69,10 +86,32 @@ def process_order():
         log_with_timestamp(f"Normal processing. Waiting for {delay:.2f} seconds")
         time.sleep(delay)
     
-    # Forward request to database service
+    # Check if product exists or needs to be added
     try:
-        log_with_timestamp("Sending request to database service")
-        response = requests.post(
+        if not product_id:
+            # Add new product
+            log_with_timestamp("Adding new product")
+            add_product_response = requests.post(
+                f"{DATABASE_SERVICE_URL}/add_product",
+                json={
+                    'name': product_name,
+                    'quantity': quantity,
+                    'price': price
+                },
+                headers={
+                    'X-User-Region': user_region,
+                    'X-Device-Type': device_type
+                },
+                timeout=10
+            )
+            add_product_response.raise_for_status()
+            product_data = add_product_response.json()
+            product_id = product_data.get('product_id')
+            log_with_timestamp(f"New product added with ID: {product_id}")
+
+        # Update inventory
+        log_with_timestamp("Updating inventory")
+        update_inventory_response = requests.post(
             f"{DATABASE_SERVICE_URL}/update_inventory",
             json={
                 'product_id': product_id,
@@ -87,15 +126,15 @@ def process_order():
             },
             timeout=10
         )
-        response.raise_for_status()
-        log_with_timestamp("Received response from database service")
+        update_inventory_response.raise_for_status()
+        log_with_timestamp("Inventory updated successfully")
     except requests.exceptions.RequestException as e:
         log_with_timestamp(f"Error communicating with database service: {str(e)}")
         elasticapm.set_custom_context({'error_details': str(e)})
         return jsonify({'message': 'Error processing order'}), 500
     
     log_with_timestamp("Order processed successfully")
-    return jsonify({'message': 'Order processed successfully'}), 200
+    return jsonify({'message': 'Order processed successfully', 'product_id': product_id}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002)

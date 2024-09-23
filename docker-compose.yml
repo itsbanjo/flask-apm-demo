@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  frontend:
+  frontend-flask:
     build: 
-      context: ./frontend
+      context: ./frontend-flask
       dockerfile: Dockerfile
     ports:
       - "5001:5001"
@@ -11,7 +11,23 @@ services:
       - BACKEND_SERVICE_URL=http://backend:5002
       - ELASTIC_APM_SERVER_URL=${ELASTIC_APM_SERVER_URL}
       - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
-      - ELASTIC_APM_SERVICE_NAME=frontend
+      - ELASTIC_APM_SERVICE_NAME=frontend-flask
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  frontend-nodejs:
+    build: 
+      context: ./frontend-nodejs
+      dockerfile: Dockerfile
+    ports:
+      - "5004:5004"
+    environment:
+      - BACKEND_SERVICE_URL=http://backend:5002
+      - ELASTIC_APM_SERVER_URL=${ELASTIC_APM_SERVER_URL}
+      - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
+      - ELASTIC_APM_SERVICE_NAME=frontend-nodejs
     depends_on:
       - backend
     networks:
@@ -43,6 +59,27 @@ services:
       - ELASTIC_APM_SERVER_URL=${ELASTIC_APM_SERVER_URL}
       - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
       - ELASTIC_APM_SERVICE_NAME=database
+      - DATABASE_URL=postgresql://user:password@postgres:5432/inventory
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: inventory
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d inventory"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
@@ -54,9 +91,13 @@ services:
       - "8089:8089"
     volumes:
       - ./locust:/mnt/locust
-    command: -f /mnt/locust/locustfile.py --host http://frontend:5001
+    command: -f /mnt/locust/locustfile.py --host http://frontend-flask:5001
     networks:
       - app-network
+
+volumes:
+  postgres_data:
+  elasticsearch_data:
 
 networks:
   app-network:
