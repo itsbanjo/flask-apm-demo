@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   frontend-flask:
     build: 
@@ -12,6 +10,8 @@ services:
       - ELASTIC_APM_SERVER_URL=${ELASTIC_APM_SERVER_URL}
       - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
       - ELASTIC_APM_SERVICE_NAME=frontend-flask
+    volumes:
+      - frontend-flask:/var/log/
     depends_on:
       - backend
     networks:
@@ -28,6 +28,8 @@ services:
       - ELASTIC_APM_SERVER_URL=${ELASTIC_APM_SERVER_URL}
       - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
       - ELASTIC_APM_SERVICE_NAME=frontend-nodejs
+    volumes:
+      - frontend-nodejs:/var/log/
     depends_on:
       - backend
     networks:
@@ -44,6 +46,8 @@ services:
       - ELASTIC_APM_SERVER_URL=${ELASTIC_APM_SERVER_URL}
       - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
       - ELASTIC_APM_SERVICE_NAME=backend
+    volumes:
+      - backend:/var/log/
     depends_on:
       - database
     networks:
@@ -105,12 +109,12 @@ services:
       - frontend-flask
       - frontend-nodejs
     volumes:
-      - nginx-logs:/var/log/nginx
+      - nginx-logs:/demo/
     networks:
       - app-network
 
   elastic-agent:
-    image: docker.elastic.co/beats/elastic-agent:8.14.0
+    image: docker.elastic.co/elastic-agent/elastic-agent:8.15.2
     user: root
     environment:
       - FLEET_ENROLL=1
@@ -120,6 +124,9 @@ services:
 
     volumes:
       - nginx-logs:/var/log/nginx  # Same volume to access NGINX logs
+      - frontend-flask:/var/log/frontend-flask
+      - frontend-nodejs:/var/log/frontend-nodejs
+      - backend:/var/log/backend
       - /var/run/docker.sock:/var/run/docker.sock
 
     networks:
@@ -148,6 +155,9 @@ volumes:
   postgres_data:
   elasticsearch_data:
   nginx-logs:
+  frontend-flask:
+  frontend-nodejs:
+  backend:
 networks:
   app-network:
     driver: bridge

@@ -8,6 +8,7 @@ import elasticapm
 from sqlalchemy import create_engine, Column, Integer, String, Float, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from elasticapm import Client as ElasticAPMClient
 
 app = Flask(__name__)
 
@@ -20,6 +21,7 @@ app.config['ELASTIC_APM'] = {
     'CAPTURE_HEADERS': True,
 }
 apm = ElasticAPM(app)
+elastic_apm_client = ElasticAPMClient(app.config['ELASTIC_APM'])
 
 # Database configuration
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://user:password@postgres:5432/inventory')
@@ -126,7 +128,7 @@ def update_inventory():
     except Exception as e:
         session.rollback()
         log_with_timestamp(f"Error updating inventory: {str(e)}")
-        elasticapm.capture_exception()
+        elastic_apm_client.capture_exception()
         return jsonify({'message': 'Error updating inventory'}), 500
     finally:
         session.close()
@@ -147,7 +149,7 @@ def add_product():
         return jsonify({'message': 'Product added successfully', 'product_id': new_product.id}), 201
     except Exception as e:
         session.rollback()
-        elasticapm.capture_exception()
+        elastic_apm_client.capture_exception()
         return jsonify({'message': 'Error adding product'}), 500
     finally:
         session.close()

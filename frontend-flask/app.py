@@ -1,10 +1,16 @@
 from flask import Flask, request, jsonify, render_template
 import requests
 import os
+import logging
 from elasticapm.contrib.flask import ElasticAPM
 import elasticapm
+from elasticapm import Client as ElasticAPMClient
 
 app = Flask(__name__)
+
+logging.basicConfig(filename='/var/log/frontend.log', level=logging.INFO,
+                    format='%(asctime)s %(levelname)s: %(message)s')
+
 
 # Configure Elastic APM
 app.config['ELASTIC_APM'] = {
@@ -15,6 +21,7 @@ app.config['ELASTIC_APM'] = {
     'CAPTURE_BODY': 'all'
 }
 apm = ElasticAPM(app)
+elastic_apm_client = ElasticAPMClient(app.config['ELASTIC_APM'])
 
 BACKEND_SERVICE_URL = os.getenv('BACKEND_SERVICE_URL', 'http://backend:5002')
 
@@ -29,6 +36,8 @@ def place_order():
     else:
         data = request.form.to_dict()
 
+    logging.info(f"Received order: {data}")
+
     user_id = data.get('user_id')
     product_id = data.get('product_id')
     product_name = data.get('product_name')
@@ -37,10 +46,13 @@ def place_order():
     region = data.get('region')
     device_type = data.get('device_type')
 
+    high_latency = request.headers.get('X-High-Latency', 'false').lower() == 'true'
+
     headers = {
         'Content-Type': 'application/json',
         'X-User-Region': region,
-        'X-Device-Type': device_type
+        'X-Device-Type': device_type,
+        'X-High-Latency': str(high_latency)
     }
 
     elasticapm.set_custom_context({
@@ -50,10 +62,16 @@ def place_order():
         'quantity': quantity,
         'price': price,
         'region': region,
-        'device_type': device_type
+        'device_type': device_type,
+        'high_latency': high_latency
     })
 
-    elasticapm.label(order_type='standard', frontend_service='flask')
+    if high_latency:
+        elasticapm.label(
+            order_type='high_latency',
+            frontend_service='flask',
+            serviceMetadata='High Latency Enabled'
+        )
 
     try:
         response = requests.post(
@@ -63,16 +81,18 @@ def place_order():
                 'product_id': product_id,
                 'product_name': product_name,
                 'quantity': quantity,
-                'price': price
+                'price': price 
             },
             headers=headers
         )
         response.raise_for_status()
         app.logger.info(f"Order processed successfully: {response.json()}")
+        logging.info(f"Order processed: {response.json()}")
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error communicating with backend: {str(e)}")
-        elasticapm.capture_exception()
+        logging.error(f"Error processing order: {str(e)}")
+        elastic_apm_client.capture_exception()
         return jsonify({'message': 'Error processing order'}), 500
 
 @app.route('/health')
