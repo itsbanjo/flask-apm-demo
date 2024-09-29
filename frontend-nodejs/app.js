@@ -23,7 +23,8 @@ const apm = require('elastic-apm-node').start({
   secretToken: process.env.ELASTIC_APM_SECRET_TOKEN,
   environment: process.env.NODE_ENV || 'development',
   captureHeaders: true,
-  captureBody: 'all'
+  captureBody: 'all',
+  distributedTracingOrigins: [process.env.BACKEND_SERVICE_URL || 'http://backend:5002']
 });
 
 const app = express();
@@ -41,7 +42,7 @@ app.post('/order', async (req, res) => {
   const { user_id, product_id, product_name, quantity, price, region, device_type } = req.body;
   const high_latency = req.headers['x-high-latency'] === 'true';
 
-  const transaction = apm.startTransaction('place_order', 'request');
+  const transaction = apm.startTransaction('POST /order', 'request');
 
   try {
     // Set custom context
@@ -63,6 +64,11 @@ app.post('/order', async (req, res) => {
       apm.setLabel('serviceMetadata', 'High Latency Enabled');
     }
     
+    // Create a custom span for the backend request
+    const span = transaction.startSpan('POST backend:5002/process_order', 'external.http');
+
+    // Get the trace context from the current transaction
+    const traceContext = transaction.traceparent;
 
     const response = await axios.post(`${BACKEND_SERVICE_URL}/process_order`, {
       user_id,
@@ -74,9 +80,12 @@ app.post('/order', async (req, res) => {
       headers: {
         'X-User-Region': region,
         'X-Device-Type': device_type,
-        'X-High-Latency': high_latency.toString()
+        'X-High-Latency': high_latency.toString(),
+        'elastic-apm-traceparent': traceContext // Add the trace context
       }
     });
+
+    if (span) span.end();
 
     const processingTime = (Date.now() - startTime) / 1000;
     logger.info(`Order processed: ${JSON.stringify(response.data)}`);
