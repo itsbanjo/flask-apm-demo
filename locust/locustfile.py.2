@@ -25,22 +25,4 @@ class OrderUser(HttpUser):
                 response.failure(f"Failed with status code: {response.status_code}")
 
 
-    @task
-    def place_order_dodgy(self):
-        # New payload with different parameters
-        payload = {
-            "user_id": "findme",
-            "product_id": "ifyoucan",
-            "quantity": 2,
-            "region": "Europe",
-            "device_type": "Mobile"
-        }
-        headers = {
-            "X-User-Region": payload["region"],
-            "X-Device-Type": payload["device_type"]
-        }
-        with self.client.post("/order", json=payload, headers=headers, catch_response=True) as response:
-            if response.status_code == 200:
-                response.success()
-            else:
-                response.failure(f"Failed with status code: {response.status_code}")
+
