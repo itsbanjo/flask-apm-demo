@@ -3,66 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Processing System</title>
+    <title>Modern Order Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-    <h1>Welcome to the Order Processing System</h1>
-    <form id="orderForm">
-        <label for="user_id">User ID:</label>
-        <input type="text" id="user_id" name="user_id" required><br><br>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Order Management System</h1>
+        </header>
         
-        <label for="product_id">Product ID:</label>
-        <input type="text" id="product_id" name="product_id"><br><br>
-        
-        <label for="product_name">Product Name:</label>
-        <input type="text" id="product_name" name="product_name"><br><br>
-        
-        <label for="quantity">Quantity:</label>
-        <input type="number" id="quantity" name="quantity" required><br><br>
-        
-        <label for="price">Price:</label>
-        <input type="number" id="price" name="price" step="0.01"><br><br>
-        
-        <label for="region">Region:</label>
-        <select id="region" name="region">
-            <option value="North America">North America</option>
-            <option value="South America">South America</option>
-            <option value="Europe">Europe</option>
-            <option value="Asia">Asia</option>
-        </select><br><br>
-        
-        <label for="device_type">Device Type:</label>
-        <select id="device_type" name="device_type">
-            <option value="Desktop">Desktop</option>
-            <option value="Mobile">Mobile</option>
-            <option value="Tablet">Tablet</option>
-        </select><br><br>
-        
-        <input type="submit" value="Place Order">
-    </form>
-
-    <div id="result"></div>
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Place New Order</h2>
+                <form id="orderForm" class="space-y-4">
+                    <div>
+                        <label for="user_id" class="block text-sm font-medium text-gray-700">User ID</label>
+                        <input type="text" id="user_id" name="user_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="product_id" class="block text-sm font-medium text-gray-700">Product ID</label>
+                        <input type="text" id="product_id" name="product_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
+                        <input type="number" id="quantity" name="quantity" required min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="region" class="block text-sm font-medium text-gray-700">Region</label>
+                        <select id="region" name="region" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <option value="North America">North America</option>
+                            <option value="South America">South America</option>
+                            <option value="Europe">Europe</option>
+                            <option value="Asia">Asia</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="device_type" class="block text-sm font-medium text-gray-700">Device Type</label>
+                        <select id="device_type" name="device_type" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <option value="Desktop">Desktop</option>
+                            <option value="Mobile">Mobile</option>
+                            <option value="Tablet">Tablet</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Place Order</button>
+                    </div>
+                </form>
+            </section>
+            
+            <section class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Order Status</h2>
+                <div id="orderStatus" class="mb-4 p-4 bg-gray-100 rounded-md min-h-[100px]"></div>
+                <div class="mb-4">
+                    <button id="highLatencyBtn" class="bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">Activate High Latency (30s)</button>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Order Processing Times</h3>
+                    <canvas id="orderChart" width="400" height="200"></canvas>
+                </div>
+            </section>
+        </main>
+    </div>
 
     <script>
-        document.getElementById('orderForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const orderData = Object.fromEntries(formData);
+        let highLatencyActive = false;
+        let orderTimes = [];
+        const maxDataPoints = 10;
 
-            try {
-                const response = await fetch('/order', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(orderData),
-                });
-                const result = await response.json();
-                document.getElementById('result').innerText = JSON.stringify(result, null, 2);
-            } catch (error) {
-                document.getElementById('result').innerText = 'Error processing order';
+        const ctx = document.getElementById('orderChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Processing Time (s)',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
             }
         });
+
+        document.getElementById('orderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            formData.append('high_latency', highLatencyActive);
+
+            const startTime = Date.now();
+            
+            fetch('/order', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const processingTime = (Date.now() - startTime) / 1000; // Convert to seconds
+                updateOrderStatus(data.message, processingTime);
+                updateChart(processingTime);
+            })
+            .catch(error => {
+                updateOrderStatus('Error: ' + error, null);
+            });
+        });
+
+        document.getElementById('highLatencyBtn').addEventListener('click', function() {
+            if (!highLatencyActive) {
+                highLatencyActive = true;
+                this.textContent = 'High Latency Active';
+                this.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                this.classList.add('bg-red-500', 'hover:bg-red-600');
+                
+                setTimeout(() => {
+                    highLatencyActive = false;
+                    this.textContent = 'Activate High Latency (30s)';
+                    this.classList.remove('bg-red-500', 'hover:bg-red-600');
+                    this.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+                }, 30000);
+            }
+        });
+
+        function updateOrderStatus(message, processingTime) {
+            const statusElement = document.getElementById('orderStatus');
+            statusElement.textContent = message;
+            if (processingTime !== null) {
+                statusElement.textContent += ` (Processing Time: ${processingTime.toFixed(2)}s)`;
+            }
+        }
+
+        function updateChart(newTime) {
+            orderTimes.push(newTime);
+            if (orderTimes.length > maxDataPoints) {
+                orderTimes.shift();
+            }
+
+            chart.data.labels = Array.from({length: orderTimes.length}, (_, i) => `Order ${i + 1}`);
+            chart.data.datasets[0].data = orderTimes;
+            chart.update();
+        }
     </script>
 </body>
 </html>

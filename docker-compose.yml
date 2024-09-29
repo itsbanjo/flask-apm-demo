@@ -95,10 +95,59 @@ services:
     networks:
       - app-network
 
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend-flask
+      - frontend-nodejs
+    volumes:
+      - nginx-logs:/var/log/nginx
+    networks:
+      - app-network
+
+  elastic-agent:
+    image: docker.elastic.co/beats/elastic-agent:8.14.0
+    user: root
+    environment:
+      - FLEET_ENROLL=1
+      - FLEET_INSECURE=false
+      - FLEET_URL=${FLEET_URL}
+      - FLEET_ENROLLMENT_TOKEN=${FLEET_ENROLLMENT_TOKEN}
+
+    volumes:
+      - nginx-logs:/var/log/nginx  # Same volume to access NGINX logs
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    networks:
+      - app-network
+
+  pf-host-agent:
+    image: docker.elastic.co/observability/profiling-agent:8.15.1
+    container_name: pf-host-agent
+    privileged: true
+    pid: "host"
+    volumes:
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /sys/kernel/debug:/sys/kernel/debug:ro
+    command: /root/pf-host-agent \
+      -project-id=${PROFILING_AGENT_PROJECT_ID} \
+      -secret-token=${PROFILING_AGENT_SECRET_TOKEN} \
+      -collection-agent=${PROFILING_AGENT_SERVER_URL}
+    environment:
+      - PROJECT_ID=${PROFILING_AGENT_PROJECT_ID}
+      - SECRET_TOKEN=${PROFILING_AGENT_SECRET_TOKEN}
+      - COLLECTION_AGENT=${PROFILING_AGENT_SERVER_URL}
+
+
 volumes:
   postgres_data:
   elasticsearch_data:
-
+  nginx-logs:
 networks:
   app-network:
     driver: bridge

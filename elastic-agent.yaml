@@ -1,0 +1,20 @@
+inputs:
+  - type: filestream
+    id: nginx-access-logs
+    streams:
+      - data_stream:
+          type: logs
+        paths:
+          - /var/log/nginx/access.log
+        parsers:
+          - nginx:
+              access:
+                format: combined
+
+  - type: nginx/metrics
+    id: nginx-metrics
+    metricsets:
+      - stubstatus
+    hosts:
+      - "http://nginx:80"
+    period: 10s

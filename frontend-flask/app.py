@@ -16,7 +16,7 @@ app.config['ELASTIC_APM'] = {
 }
 apm = ElasticAPM(app)
 
-BACKEND_SERVICE_URL = os.getenv('BACKEND_SERVICE_URL', 'http://localhost:5002')
+BACKEND_SERVICE_URL = os.getenv('BACKEND_SERVICE_URL', 'http://backend:5002')
 
 @app.route('/')
 def index():
