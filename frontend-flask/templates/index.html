@@ -96,13 +96,21 @@
         document.getElementById('orderForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-            formData.append('high_latency', highLatencyActive);
+            const data = Object.fromEntries(formData.entries());
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-User-Region': data.region,
+                'X-Device-Type': data.device_type,
+                'X-High-Latency': highLatencyActive.toString()
+            };
 
             const startTime = Date.now();
             
             fetch('/order', {
                 method: 'POST',
-                body: formData
+                headers: headers,
+                body: JSON.stringify(data)
             })
             .then(response => response.json())
             .then(data => {
