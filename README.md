@@ -77,7 +77,7 @@ Example request body:
 
 ## Viewing Traces
 
-![APM Tracing](artefacts/tracing.png)
+![APM Tracing](artefacts/trace.png)
 
 1. **Access Kibana**:
    - Log in to your Elastic Cloud account.
