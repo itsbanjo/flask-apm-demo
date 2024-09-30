@@ -67,9 +67,8 @@ Send a POST request to either frontend service:
 Example request body:
 ```json
 {
-  "user_id": "user123",
-  "product_id": "prod456",
-  "product_name": "Sample Product",
+  "user_id": "1",
+  "product_id": "1",
   "quantity": 2,
   "price": 19.99,
   "region": "North America",
