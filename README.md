@@ -41,11 +41,13 @@ The system consists of the following components:
 
 2. Create a `.env` file in the root directory with the following content:
    ```
-   ELASTIC_APM_SERVER_URL=http://your-apm-server:8200
-   ELASTIC_APM_SECRET_TOKEN=your_secret_token
-   POSTGRES_USER=user
-   POSTGRES_PASSWORD=password
-   POSTGRES_DB=inventory
+   ELASTIC_CLOUD_HOST=
+   ELASTIC_API_KEY=
+   FLEET_ENROLLMENT_TOKEN=
+   FLEET_URL=
+
+   ELASTIC_APM_SECRET_TOKEN=
+   ELASTIC_APM_SERVER_URL=
    ```
 
 3. Build and start the services:
