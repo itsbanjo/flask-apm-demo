@@ -140,6 +140,67 @@ Logs are written to:
 
 3. Verify that the Elastic APM server is accessible from your services.
 
+## Load Testing with Locust
+
+This project includes a Locust file for load testing the order processing system. Locust is a user-friendly, scriptable and scalable performance testing tool.
+
+### Locust File Overview
+
+The `locustfile.py` is located in the `locust` directory and defines the behavior of simulated users for load testing. Here's an overview of its key components:
+
+```python
+class OrderUser(HttpUser):
+    wait_time = between(1, 5)  # Wait 1-5 seconds between tasks
+
+    @task(1)
+    def place_order(self):
+        # Simulates normal order placement
+
+    @task(2)
+    def place_order_broken(self):
+        # Simulates problematic order placement
+
+    @task(3)
+    def place_order_sluggish(self):
+        # Simulates high-latency order placement
+```
+
+#### Key Features:
+
+1. **Normal Order Placement**: Simulates standard order processing.
+2. **Problematic Order Placement**: Tests the system's error handling with potentially invalid data.
+3. **High-Latency Order Placement**: Simulates slow order processing to test system behavior under delay.
+
+### Task Weighting
+
+- Normal orders have a weight of 1
+- Problematic orders have a weight of 2
+- High-latency orders have a weight of 3
+
+This distribution ensures that the system is tested more heavily with edge cases and performance-critical scenarios.
+
+### Running Load Tests
+
+1. Ensure all services are up and running.
+2. Start Locust:
+   ```
+   docker-compose up locust
+   ```
+3. Access the Locust web interface at `http://localhost:8089`.
+4. Set the number of users to simulate and the spawn rate.
+5. Start the test and monitor the results in real-time.
+
+### Interpreting Results
+
+- **Response Time**: Monitor how response times change as load increases.
+- **Error Rate**: Check for any errors, especially with the "broken" order placement task.
+- **Requests Per Second**: Observe how many requests your system can handle.
+- **High-Latency Behavior**: Pay special attention to how your system performs during simulated high-latency scenarios.
+
+### Customizing Tests
+
+You 
+
 ## Contributing
 
 Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
