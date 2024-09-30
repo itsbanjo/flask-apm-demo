@@ -1,122 +1,149 @@
-# Flask APM Demo
+# Microservices Order Processing System with APM
 
-This project demonstrates the implementation of Elastic APM (Application Performance Monitoring) in a microservices architecture using Flask. It includes frontend, backend, and database services, along with Locust for load testing.
+This project demonstrates a microservices-based order processing system with Elastic APM integration for performance monitoring and distributed tracing.
 
-## Project Structure
+## Architecture
 
-```
-flask-apm-demo/
-├── docker-compose.yml
-├── frontend/
-│   ├── Dockerfile
-│   ├── app.py
-│   └── requirements.txt
-├── backend/
-│   ├── Dockerfile
-│   ├── app.py
-│   └── requirements.txt
-├── database/
-│   ├── Dockerfile
-│   ├── app.py
-│   └── requirements.txt
-├── locust/
-│   ├── Dockerfile
-│   ├── locustfile.py
-│   └── requirements.txt
-└── .env
-```
+The system consists of the following components:
 
-## Services
+1. Frontend (Flask and Node.js versions)
+2. Backend (Python Flask)
+3. Database Service (Python Flask with PostgreSQL)
+4. Elastic APM Server
+5. PostgreSQL Database
+6. Locust (for load testing)
 
-- Frontend: Handles user requests (Port 5001)
-- Backend: Processes business logic (Port 5002)
-- Database: Simulates data storage operations (Port 5003)
-- Locust: Load testing tool
+## Features
+
+- Dual frontend implementations (Flask and Node.js) for comparison
+- RESTful API for order processing
+- Distributed tracing with Elastic APM
+- High latency simulation for testing and monitoring
+- Comprehensive logging
+- Load testing with Locust
 
 ## Prerequisites
 
 - Docker and Docker Compose
-- Elastic APM Server (setup instructions not included in this demo)
+- Node.js (for Node.js frontend)
+- Python 3.8+
+- Elastic APM Server (can be set up separately or as part of an Elastic Stack)
 
 ## Setup
 
 1. Clone the repository:
    ```
-   git clone https://github.com/itsbanjo/flask-apm-demo.git
+   git clone flask-apm-demo
    cd flask-apm-demo
    ```
 
 2. Create a `.env` file in the root directory with the following content:
    ```
-   ELASTIC_APM_SERVER_URL=http://your-apm-server-url:8200
-   ELASTIC_APM_SECRET_TOKEN=your_secret_token_here
+   ELASTIC_APM_SERVER_URL=http://your-apm-server:8200
+   ELASTIC_APM_SECRET_TOKEN=your_secret_token
+   POSTGRES_USER=user
+   POSTGRES_PASSWORD=password
+   POSTGRES_DB=inventory
    ```
 
 3. Build and start the services:
    ```
-   docker-compose up --build -d
+   docker-compose up --build
    ```
 
 ## Usage
 
-1. Access the frontend at `http://localhost:5001`
+### Placing an Order
 
-2. To run a load test with Locust:
-   - Open `http://localhost:8089` in your browser
-   - Set the number of users and spawn rate
-   - Start the test
+Send a POST request to either frontend service:
 
-3. Monitor the performance in your Elastic APM dashboard
+- Flask Frontend: `http://localhost:5001/order`
+- Node.js Frontend: `http://localhost:5004/order`
 
-## API Endpoints
+Example request body:
+```json
+{
+  "user_id": "user123",
+  "product_id": "prod456",
+  "product_name": "Sample Product",
+  "quantity": 2,
+  "price": 19.99,
+  "region": "North America",
+  "device_type": "Desktop"
+}
+```
 
-- Frontend: `POST /order`
-- Backend: `POST /process_order`
-- Database: `POST /update_inventory`
+### Simulating High Latency
 
-## Elastic APM Integration
+Add the `X-High-Latency: true` header to your request to simulate high latency scenarios.
 
-This demo showcases several Elastic APM features:
+### Health Check
 
-- Distributed tracing across microservices
-- Custom context and labels for detailed transaction information
-- Performance monitoring and error tracking
-- Latency correlation for identifying performance bottlenecks
+Access the health check endpoint:
+- Flask Frontend: `http://localhost:5001/health`
+- Node.js Frontend: `http://localhost:5004/health`
 
-Key APM integration points:
+### Load Testing
 
-- Manual instrumentation in each service
-- Propagation of custom headers (X-User-Region, X-Device-Type)
-- Simulation of various latency scenarios
+Access the Locust web interface at `http://localhost:8089` to perform load testing. The default URL will send request to both flask frontend and python frontend through load-balancing 
 
-## Simulating Scenarios
+### Nginx as Reverse Proxy and Load Balancer
 
-- High Latency: Activated through the frontend UI
-- Region-specific Latency: Simulated for South America in the database service
-- Device-specific Errors: 10% error rate for mobile devices in the database service
+Nginx serves as a reverse proxy and load balancer for our frontend services. It distributes incoming requests between the Flask and Node.js frontend instances, providing several benefits:
+
+- **Load Distribution**: Evenly distributes traffic between the two frontend services, preventing any single instance from becoming overwhelmed.
+- **High Availability**: If one frontend service goes down, Nginx can route all traffic to the remaining healthy instance.
+- **SSL Termination**: Nginx can handle SSL/TLS encryption, offloading this task from the application servers.
+- **Simplified Architecture**: Clients only need to know the Nginx server's address, not the individual frontend services.
+
+The Nginx configuration uses a round-robin algorithm by default to distribute requests between the Flask and Node.js frontends.
+
+
+## Monitoring
+
+Access your Elastic APM dashboard to view performance metrics, distributed traces, and error logs.
+
+## Development
+
+### Frontend (Flask)
+
+Located in `./frontend-flask/app.py`
+
+### Frontend (Node.js)
+
+Located in `./frontend-nodejs/app.js`
+
+### Backend
+
+Located in `./backend/app.py`
+
+### Database Service
+
+Located in `./database/app.py`
+
+## Logging
+
+Logs are written to:
+- Frontend Flask: `/var/log/frontend.log`
+- Frontend Node.js: `/var/log/frontend.log`
+- Backend: `/var/log/backend.log`
+- Database Service: `/var/log/database.log`
 
 ## Troubleshooting
 
-- Check Docker logs: `docker-compose logs`
-- Ensure all services are running: `docker-compose ps`
-- Verify APM server connectivity in each service's logs
+1. If services fail to start, check Docker logs:
+   ```
+   docker-compose logs [service-name]
+   ```
+
+2. Ensure all required environment variables are set in the `.env` file.
+
+3. Verify that the Elastic APM server is accessible from your services.
 
 ## Contributing
 
-Contributions to improve the demo are welcome. Please follow these steps:
-
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Create a new Pull Request
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
 
 ## License
 
-[MIT License](https://opensource.org/licenses/MIT)
-
-## Acknowledgments
-
-- Elastic for providing the APM solution
-- Flask community for the excellent web framework
-- Locust team for the load testing tool
+This project is licensed under the MIT License - see the LICENSE.md file for details.
