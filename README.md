@@ -2,6 +2,8 @@
 
 This project demonstrates a microservices-based order processing system with Elastic APM integration for performance monitoring and distributed tracing.
 
+![UI](artefacts/frontend.png)
+
 ## Architecture
 
 The system consists of the following components:
@@ -73,6 +75,69 @@ Example request body:
 }
 ```
 
+## Viewing Traces
+
+![APM Tracing](artefacts/tracing.png)
+
+1. **Access Kibana**:
+   - Log in to your Elastic Cloud account.
+   - Go to your deployment and click on "Launch Kibana".
+
+2. **Navigate to APM**:
+   - In Kibana, click on "APM" in the left sidebar.
+
+3. **Select Your Service**:
+   - You should see your services listed (e.g., "frontend-flask", "frontend-nodejs", "backend").
+   - Click on the service you want to investigate.
+
+4. **Find `/order` Transactions**:
+   - In the "Transactions" tab, look for "POST /order" transactions.
+   - Click on a transaction to view its details.
+
+## Analyzing `/order` Traces
+
+When analyzing a trace for the `/order` API:
+
+1. **Transaction Overview**:
+   - View the overall response time and result (success/error).
+
+2. **Distributed Tracing**:
+   - Observe how the request flows from the frontend through the backend to the database.
+   - Look for any gaps or unexpected delays between services.
+
+3. **Spans**:
+   - Examine individual spans to see where time is spent:
+     - Frontend processing
+     - Network time to backend
+     - Backend processing
+     - Database queries
+
+4. **High Latency Detection**:
+   - For requests with the `X-High-Latency` header, you should see longer durations in specific spans.
+
+5. **Error Analysis**:
+   - If a transaction failed, look for error messages and stack traces.
+
+6. **Custom Context**:
+   - Check the "Custom" tab in the transaction details to see additional context like `user_id`, `product_id`, etc.
+
+7. **Service Map**:
+   - Use the Service Map view to visualize the flow between services for `/order` requests.
+
+## Tips for Effective Tracing
+
+- Use unique `user_id` or `order_id` values to easily find specific transactions.
+- Compare traces between normal and high-latency requests to understand performance impacts.
+- Look for patterns in slow transactions – are they related to specific products, regions, or times?
+- Use the "Compare" feature in Kibana to analyze differences between fast and slow transactions.
+
+## Troubleshooting
+
+- If traces are not appearing, check that your APM server URL and secret token are correctly set.
+- Ensure all services (frontend, backend, database) are properly instrumented with the APM agent.
+- Verify that the APM server is reachable from your application services.
+
+
 ### Simulating High Latency
 
 Add the `X-High-Latency: true` header to your request to simulate high latency scenarios.
@@ -86,6 +151,9 @@ Access the health check endpoint:
 ### Load Testing
 
 Access the Locust web interface at `http://localhost:8089` to perform load testing. The default URL will send request to both flask frontend and python frontend through load-balancing 
+
+![Locust](artefacts/locust.png)
+
 
 ### Nginx as Reverse Proxy and Load Balancer
 
