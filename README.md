@@ -1,6 +1,6 @@
 # Microservices Order Processing System with APM
 
-This project demonstrates a microservices-based order processing system with Elastic APM integration for performance monitoring and distributed tracing.
+This project demonstrates a microservices-based order processing system using Elastic APM and OpenTelemetry for Elastic APM integration for performance monitoring and distributed tracing.
 
 ![UI](artefacts/frontend.png)
 
@@ -8,12 +8,15 @@ This project demonstrates a microservices-based order processing system with Ela
 
 The system consists of the following components:
 
-1. Frontend (Flask and Node.js versions)
+1. Frontend (Flask and Node.js versions) and Flask with Otel
 2. Backend (Python Flask)
 3. Database Service (Python Flask with PostgreSQL)
 4. Elastic APM Server
 5. PostgreSQL Database
 6. Locust (for load testing)
+
+## Tools Available
+- OTLP span and metrics tester to verify your API token (see Tools Section)
 
 ## Features
 
@@ -265,6 +268,14 @@ This distribution ensures that the system is tested more heavily with edge cases
 - **Error Rate**: Check for any errors, especially with the "broken" order placement task.
 - **Requests Per Second**: Observe how many requests your system can handle.
 - **High-Latency Behavior**: Pay special attention to how your system performs during simulated high-latency scenarios.
+
+### Tools
+
+The docker can be recompiled and the full code is located in frontend-otel/util/ 
+
+```
+docker run --rm  -e OTEL_EXPORTER_OTLP_ENDPOINT=<CHANGE ME> -e OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20<CHANGE_ME>"  banjodocker/otlp-test-util
+```
 
 ### Customizing Tests
 
