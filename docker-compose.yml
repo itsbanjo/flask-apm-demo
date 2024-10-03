@@ -17,6 +17,26 @@ services:
     networks:
       - app-network
 
+
+  frontend-otel:
+    build:
+      context: ./frontend-otel
+      dockerfile: Dockerfile
+    ports:
+      - "5005:5005"
+    environment:
+      - BACKEND_SERVICE_URL=http://backend:5002
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${ELASTIC_APM_SERVER_URL}
+      - OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer%20${ELASTIC_APM_SECRET_TOKEN}
+      - OTEL_SERVICE_NAME=frontend-otel
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
+    volumes:
+      - frontend-otel:/var/log/
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
   frontend-nodejs:
     build: 
       context: ./frontend-nodejs
@@ -132,13 +152,13 @@ services:
     networks:
       - app-network
 
-
 volumes:
   postgres_data:
   elasticsearch_data:
   nginx-logs:
   frontend-flask:
   frontend-nodejs:
+  frontend-otel:
   backend:
 networks:
   app-network:
