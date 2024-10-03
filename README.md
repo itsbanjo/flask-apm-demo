@@ -66,6 +66,7 @@ Send a POST request to either frontend service:
 
 - Flask Frontend: `http://localhost:5001/order`
 - Node.js Frontend: `http://localhost:5004/order`
+- Flask OTEL Frontend: `http://localhost:5005/order`
 
 Example request body:
 ```json
