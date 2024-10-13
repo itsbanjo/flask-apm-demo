@@ -1,0 +1,271 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-flask
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+      implementation: flask
+  template:
+    metadata:
+      labels:
+        app: frontend
+        implementation: flask
+    spec:
+      containers:
+      - name: frontend-flask
+        image: banjodocker/frontend-flask:latest
+        ports:
+        - containerPort: 5001
+        env:
+        - name: BACKEND_SERVICE_URL
+          value: "http://backend:5002"
+        - name: ELASTIC_APM_SERVER_URL
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: server-url
+        - name: ELASTIC_APM_SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: secret-token
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "frontend"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-otel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+      implementation: otel
+  template:
+    metadata:
+      labels:
+        app: frontend
+        implementation: otel
+    spec:
+      containers:
+      - name: frontend-otel
+        image: banjodocker/frontend-otel:latest
+        ports:
+        - containerPort: 5005
+        env:
+        - name: BACKEND_SERVICE_URL
+          value: "http://backend:5002"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: server-url
+        - name: OTEL_EXPORTER_OTLP_HEADERS
+          value: "Authorization=Bearer ${ELASTIC_APM_SECRET_TOKEN}"
+        - name: OTEL_SERVICE_NAME
+          value: "frontend"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "deployment.environment=production"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-nodejs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+      implementation: nodejs
+  template:
+    metadata:
+      labels:
+        app: frontend
+        implementation: nodejs
+    spec:
+      containers:
+      - name: frontend-nodejs
+        image: banjodocker/frontend-nodejs:latest
+        ports:
+        - containerPort: 5004
+        env:
+        - name: BACKEND_SERVICE_URL
+          value: "http://backend:5002"
+        - name: ELASTIC_APM_SERVER_URL
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: server-url
+        - name: ELASTIC_APM_SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: secret-token
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "frontend"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: banjodocker/backend:latest
+        ports:
+        - containerPort: 5002
+        env:
+        - name: DATABASE_SERVICE_URL
+          value: "http://database:5003"
+        - name: ELASTIC_APM_SERVER_URL
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: server-url
+        - name: ELASTIC_APM_SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: secret-token
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "backend"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+      - name: database
+        image: banjodocker/database:latest
+        ports:
+        - containerPort: 5003
+        env:
+        - name: ELASTIC_APM_SERVER_URL
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: server-url
+        - name: ELASTIC_APM_SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: elastic-apm-secret
+              key: secret-token
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "database"
+        - name: DATABASE_URL
+          value: "postgresql://user:password@postgres:5432/inventory"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: "user"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: POSTGRES_DB
+          value: "inventory"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 5001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 5002
+      targetPort: 5002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+spec:
+  selector:
+    app: database
+  ports:
+    - port: 5003
+      targetPort: 5003
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ""  # This will match any host
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port: 
+              number: 80
