@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locust
+  template:
+    metadata:
+      labels:
+        app: locust
+    spec:
+      containers:
+      - name: locust
+        image: locustio/locust
+        ports:
+        - containerPort: 8089
+        volumeMounts:
+        - name: locust-tasks
+          mountPath: /mnt/locust
+        command: ["locust"]
+        args: 
+          - "-f"
+          - "/mnt/locust/locustfile.py"
+          - "--host=http://frontend"
+          - "--web-host=0.0.0.0"
+      volumes:
+      - name: locust-tasks
+        configMap:
+          name: locust-tasks
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust
+spec:
+  selector:
+    app: locust
+  ports:
+    - port: 8089
+      targetPort: 8089
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: locust-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header X-Script-Name /locust;
+spec:
+  ingressClassName: nginx  # or 'public' if that's the correct class in your cluster
+  rules:
+  - http:
+      paths:
+      - path: /locust(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: locust
+            port:
+              number: 8089
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: locust-tasks
+data:
+  locustfile.py: |
+    from locust import HttpUser, task, between
+
+    class MyUser(HttpUser):
+        wait_time = between(1, 5)
+
+        @task
+        def my_task(self):
+            self.client.get("/")
