@@ -1,5 +1,5 @@
 opentelemetry-api
 opentelemetry-sdk
-opentelemetry-exporter-otlp-proto-grpc==1.20.0
-protobuf==4.24.3
-grpcio==1.58.0
+opentelemetry-exporter-otlp-proto-grpc
+protobuf
+grpcio
