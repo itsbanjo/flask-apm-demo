@@ -6,6 +6,13 @@
 # Apply Locust configuration
 kubectl apply -f locust-config.yaml
 
+# Get frontend service FQDN
+FRONTEND_FQDN=$(kubectl get service frontend -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local')
+
+# Update Locust configuration with frontend FQDN
+sed -i "s|http://frontend|http://$FRONTEND_FQDN|g" locust-config.yaml
+kubectl apply -f locust-config.yaml
+
 # Access Locust web interface
 # Replace <ingress-address> with your actual ingress address
 open http://<ingress-address>/locust/
@@ -32,9 +39,30 @@ This README provides instructions for deploying and using Locust, a modern load 
 
 ## Deployment
 
-### 1. Apply the Locust Configuration
+### 1. Get Frontend Service FQDN
 
-Apply the Locust configuration to your Kubernetes cluster:
+Before deploying Locust, we need to get the Fully Qualified Domain Name (FQDN) of the frontend service:
+
+```bash
+FRONTEND_FQDN=$(kubectl get service frontend -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local')
+echo $FRONTEND_FQDN
+```
+
+This command will output the FQDN, which should look like: `frontend.default.svc.cluster.local`
+
+### 2. Update Locust Configuration
+
+Update the `locust-config.yaml` file to use the frontend FQDN:
+
+```bash
+sed -i "s|http://frontend|http://$FRONTEND_FQDN|g" locust-config.yaml
+```
+
+This command replaces `http://frontend` with the full FQDN in your Locust configuration file.
+
+### 3. Apply the Locust Configuration
+
+Apply the updated Locust configuration to your Kubernetes cluster:
 
 ```bash
 kubectl apply -f locust-config.yaml
@@ -46,7 +74,7 @@ This will create:
 - An Ingress resource to expose Locust
 - A ConfigMap containing the Locust tasks
 
-### 2. Verify Deployment
+### 4. Verify Deployment
 
 Check if the Locust pod is running:
 
@@ -114,6 +142,10 @@ If you encounter issues:
    kubectl describe ingress locust-ingress
    ```
 3. Ensure your Ingress controller is properly configured.
+4. Verify the frontend FQDN is correct:
+   ```bash
+   kubectl run -it --rm --restart=Never dns-test --image=busybox:1.28 -- nslookup $FRONTEND_FQDN
+   ```
 
 ## Additional Resources
 
