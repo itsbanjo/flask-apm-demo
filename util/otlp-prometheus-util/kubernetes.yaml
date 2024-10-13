@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otlp-metrics-server
+  labels:
+    app: otlp-metrics-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otlp-metrics-server
+  template:
+    metadata:
+      labels:
+        app: otlp-metrics-server
+    spec:
+      containers:
+      - name: otlp-metrics-server
+        image: banjodocker/otlp-metrics-server:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: otlp-secrets
+              key: otlp-endpoint
+        - name: OTEL_EXPORTER_OTLP_HEADERS
+          valueFrom:
+            secretKeyRef:
+              name: otlp-secrets
+              key: otlp-headers
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otlp-metrics-server
+spec:
+  selector:
+    app: otlp-metrics-server
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otlp-secrets
+type: Opaque
+stringData:
+  otlp-endpoint: "your-otlp-endpoint-here"
+  otlp-headers: "your-otlp-headers-here"
