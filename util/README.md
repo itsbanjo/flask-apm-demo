@@ -11,7 +11,7 @@ This utility is designed to test the connection and data transmission to an Open
 You need to set the following environment variables when running the utility:
 
 - `OTEL_EXPORTER_OTLP_ENDPOINT`: The endpoint of your OTLP receiver (e.g., `http://localhost:8200`)
-- `OTEL_EXPORTER_OTLP_HEADERS`: Headers required for authentication (e.g., `Authorization=Bearer your_token_here`)
+- `OTEL_EXPORTER_OTLP_HEADERS`: Headers required for authentication (e.g., `Authorization=Bearer%20your_token_here`)
 
 ## Usage
 
