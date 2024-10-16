@@ -5,12 +5,9 @@ import logging
 from elasticapm.contrib.flask import ElasticAPM
 import elasticapm
 from elasticapm import Client as ElasticAPMClient
+from elasticapm.handlers.logging import LoggingHandler
 
 app = Flask(__name__)
-
-logging.basicConfig(filename='/var/log/frontend.log', level=logging.INFO,
-                    format='%(asctime)s %(levelname)s: %(message)s')
-
 
 # Configure Elastic APM
 app.config['ELASTIC_APM'] = {
@@ -22,6 +19,24 @@ app.config['ELASTIC_APM'] = {
 }
 apm = ElasticAPM(app)
 elastic_apm_client = ElasticAPMClient(app.config['ELASTIC_APM'])
+
+# Set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# File handler
+file_handler = logging.FileHandler('/var/log/frontend.log')
+file_handler.setLevel(logging.INFO)
+file_formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+file_handler.setFormatter(file_formatter)
+
+# Elastic APM handler
+apm_handler = LoggingHandler(client=elastic_apm_client)
+apm_handler.setLevel(logging.INFO)
+
+# Add both handlers to the logger
+logger.addHandler(file_handler)
+logger.addHandler(apm_handler)
 
 BACKEND_SERVICE_URL = os.getenv('BACKEND_SERVICE_URL', 'http://backend:5002')
 
@@ -36,7 +51,7 @@ def place_order():
     else:
         data = request.form.to_dict()
 
-    logging.info(f"Received order: {data}")
+    logger.info(f"Received order: {data}")
 
     user_id = data.get('user_id')
     product_id = data.get('product_id')
@@ -86,12 +101,10 @@ def place_order():
             headers=headers
         )
         response.raise_for_status()
-        app.logger.info(f"Order processed successfully: {response.json()}")
-        logging.info(f"Order processed: {response.json()}")
+        logger.info(f"Order processed successfully: {response.json()}")
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
-        app.logger.error(f"Error communicating with backend: {str(e)}")
-        logging.error(f"Error processing order: {str(e)}")
+        logger.error(f"Error processing order: {str(e)}", exc_info=True)
         elastic_apm_client.capture_exception()
         return jsonify({'message': 'Error processing order'}), 500
 
