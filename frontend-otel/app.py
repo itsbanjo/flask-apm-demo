@@ -14,13 +14,9 @@ from opentelemetry.semconv.resource import ResourceAttributes
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-
-# Set up basic logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -46,6 +42,13 @@ otlp_log_exporter = OTLPLogExporter()
 logger_provider = LoggerProvider(resource=resource)
 logger_provider.add_log_record_processor(BatchLogRecordProcessor(otlp_log_exporter))
 
+# Create a LoggingHandler that uses the configured LoggerProvider
+log_handler = LoggingHandler(level=logging.DEBUG, logger_provider=logger_provider)
+
+# Set up logging to use OpenTelemetry
+logging.basicConfig(level=logging.DEBUG, handlers=[log_handler])
+logger = logging.getLogger(__name__)
+
 # Instrument Flask
 FlaskInstrumentor().instrument_app(app)
 
@@ -55,7 +58,7 @@ RequestsInstrumentor().instrument()
 tracer = trace.get_tracer(__name__)
 meter = metrics.get_meter(__name__)
 
-# Define metrics
+# Define metrics (unchanged)
 order_counter = meter.create_counter(
     name="order_counter",
     description="Counts the number of orders",
@@ -84,9 +87,10 @@ BACKEND_SERVICE_URL = "http://backend:5002"
 
 @app.route('/')
 def index():
-    logger.info("Accessed home page")
-    active_users.add(1)
-    return render_template('index.html')
+    with tracer.start_as_current_span("index_page"):
+        logger.info("Accessed home page")
+        active_users.add(1)
+        return render_template('index.html')
 
 @app.route('/order', methods=['POST'])
 def place_order():
@@ -141,18 +145,19 @@ def place_order():
 
         try:
             logger.info(f"Sending request to backend for transaction {transaction_id}")
-            response = requests.post(
-                f"{BACKEND_SERVICE_URL}/process_order",
-                json={
-                    'transaction_id': transaction_id,
-                    'user_id': user_id,
-                    'product_id': product_id,
-                    'product_name': product_name,
-                    'quantity': quantity,
-                    'price': price 
-                },
-                headers=headers
-            )
+            with tracer.start_as_current_span("backend_request"):
+                response = requests.post(
+                    f"{BACKEND_SERVICE_URL}/process_order",
+                    json={
+                        'transaction_id': transaction_id,
+                        'user_id': user_id,
+                        'product_id': product_id,
+                        'product_name': product_name,
+                        'quantity': quantity,
+                        'price': price 
+                    },
+                    headers=headers
+                )
             response.raise_for_status()
             logger.info(f"Order processed successfully for transaction {transaction_id}: {response.json()}")
             return jsonify(response.json()), response.status_code
@@ -168,13 +173,15 @@ def place_order():
 
 @app.route('/health')
 def health_check():
-    logger.info("Health check requested")
-    return jsonify({'status': 'healthy'}), 200
+    with tracer.start_as_current_span("health_check"):
+        logger.info("Health check requested")
+        return jsonify({'status': 'healthy'}), 200
 
 @app.route('/simulate_error')
 def simulate_error():
-    logger.error("Simulated error occurred")
-    raise Exception("This is a simulated error")
+    with tracer.start_as_current_span("simulate_error"):
+        logger.error("Simulated error occurred")
+        raise Exception("This is a simulated error")
 
 @app.route('/simulate_slow_request')
 def simulate_slow_request():
@@ -187,8 +194,9 @@ def simulate_slow_request():
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    logger.exception("An unhandled exception occurred")
-    return jsonify(error=str(e)), 500
+    with tracer.start_as_current_span("handle_exception"):
+        logger.exception("An unhandled exception occurred")
+        return jsonify(error=str(e)), 500
 
 if __name__ == '__main__':
     logger.info("Starting Flask application on port 5005")
