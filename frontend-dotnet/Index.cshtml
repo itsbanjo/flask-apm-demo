@@ -1,0 +1,79 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Order Management System - OTel";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Order Management System - OTel</h1>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="section bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Place New Order</h2>
+            <form id="orderForm" class="space-y-4">
+                <div>
+                    <label for="userId" class="block text-sm font-medium text-gray-700">User ID</label>
+                    <input type="text" id="userId" name="userId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+
+                <div>
+                    <label for="productId" class="block text-sm font-medium text-gray-700">Product ID</label>
+                    <input type="text" id="productId" name="productId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+
+                <div>
+                    <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
+                    <input type="number" id="quantity" name="quantity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+
+                <div>
+                    <label for="region" class="block text-sm font-medium text-gray-700">Region</label>
+                    <select id="region" name="region" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="North America">North America</option>
+                        <option value="South America">South America</option>
+                        <option value="Europe">Europe</option>
+                        <option value="Asia">Asia</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="deviceType" class="block text-sm font-medium text-gray-700">Device Type</label>
+                    <select id="deviceType" name="deviceType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="Desktop">Desktop</option>
+                        <option value="Mobile">Mobile</option>
+                        <option value="Tablet">Tablet</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                    Place Order
+                </button>
+            </form>
+        </div>
+
+        <div class="section bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Order Status</h2>
+            <div id="orderStatus" class="mb-4 p-4 bg-gray-100 rounded-md min-h-[100px]"></div>
+
+            <div class="mb-4">
+                <label class="inline-flex items-center">
+                    <input type="checkbox" id="highLatency" class="form-checkbox">
+                    <span class="ml-2">Activate High Latency</span>
+                </label>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Order Processing Times</h3>
+                <div id="processingTimes"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Add your JavaScript here for form handling and UI updates
+    </script>
+}
